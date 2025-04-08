@@ -10,7 +10,7 @@ on:
       packages:
         type: string
         default: "all"
-        description: "Packages to build (comma-separated, or 'all')"
+        description: "opencv\r\nonnxruntime\r\nfastdeploy\r\nboost\r\nmisc\r\nPackages to build (用\",\"分割包名, 或者填写'all'全部编译)"
 
 jobs:
   determine-packages:
@@ -36,7 +36,7 @@ jobs:
       matrix:
         package: ${{ fromJson(needs.determine-packages.outputs.packages) }}
         os: [windows]
-        arch: [x64]
+        arch: [x64, x86]
       fail-fast: false
     defaults:
       run:
