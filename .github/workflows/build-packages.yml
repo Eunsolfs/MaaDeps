@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       packages: ${{ steps.set-packages.outputs.packages }}
+      build_order: ${{ steps.set-build-order.outputs.build_order }}
     steps:
       - uses: actions/checkout@v3
 
@@ -30,11 +31,28 @@ jobs:
           echo "packages=${PACKAGES}" >> $GITHUB_OUTPUT
           echo "Packages to build: ${PACKAGES}"
 
+      - id: set-build-order
+        run: |
+          # 创建一个包含所有包的数组
+          PACKAGES_ARRAY=$(echo '${{ steps.set-packages.outputs.packages }}' | jq -c '.')
+
+          # 创建一个新的数组，按照依赖顺序排序
+          # 如果包含 directml 和 onnxruntime，确保 directml 在 onnxruntime 之前
+          ORDERED_PACKAGES=$(echo $PACKAGES_ARRAY | jq -c '.
+            | if (contains(["directml"]) and contains(["onnxruntime"])) then
+                map(select(. == "directml")) + map(select(. != "directml" and . != "onnxruntime")) + map(select(. == "onnxruntime"))
+              else
+                .
+              end')
+
+          echo "build_order=${ORDERED_PACKAGES}" >> $GITHUB_OUTPUT
+          echo "Build order: ${ORDERED_PACKAGES}"
+
   build-package:
     needs: determine-packages
     strategy:
       matrix:
-        package: ${{ fromJson(needs.determine-packages.outputs.packages) }}
+        package: ${{ fromJson(needs.determine-packages.outputs.build_order) }}
         os: [windows]
         arch: [x64, x86]
       fail-fast: false
@@ -157,6 +175,14 @@ jobs:
         with:
           name: tarball-${{ matrix.package }}-${{ env.TARGET }}
           path: tarball-${{ matrix.package }}
+
+  display-build-order:
+    needs: determine-packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display Build Order
+        run: |
+          echo "Build order: ${{ needs.determine-packages.outputs.build_order }}"
 
   combine-packages:
     needs: build-package

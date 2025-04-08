@@ -7,7 +7,13 @@ endif()
 
 if(PORT STREQUAL "maa-onnxruntime")
     set(VCPKG_LIBRARY_LINKAGE static)
-  endif()
+endif()
+
+if(PORT STREQUAL "directml-bin")
+    # DirectML 只支持动态库链接
+    set(VCPKG_LIBRARY_LINKAGE dynamic)
+    set(VCPKG_CRT_LINKAGE dynamic)
+endif()
 
 if(PORT STREQUAL "maa-fastdeploy")
   set(VCPKG_LIBRARY_LINKAGE static)
