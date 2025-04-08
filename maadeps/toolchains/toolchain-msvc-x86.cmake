@@ -1,0 +1,9 @@
+# set(CMAKE_SYSTEM_NAME Windows)
+set(CMAKE_SYSTEM_PROCESSOR x86)
+
+set(CMAKE_C_COMPILER cl)
+set(CMAKE_CXX_COMPILER cl)
+set(CMAKE_RC_COMPILER rc)
+set(CMAKE_ASM_MASM_COMPILER ml)
+
+include(${CMAKE_CURRENT_LIST_DIR}/msvc-defaults.cmake)
