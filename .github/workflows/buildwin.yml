@@ -74,30 +74,61 @@ jobs:
 
       - name: Build MaaDeps
         run: |
+          # 显示环境信息
+          echo "Current environment:"
+          echo "TARGET: $TARGET"
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          cl.exe /?
+          
+          # 显示 Python 版本和位置
+          python3 --version
+          which python3
+          
+          # 显示目录结构
+          ls -la
+          
           for attempt in 1 2 3
           do
-            python3 build.py --tarball --target maa-$TARGET -- $MAA_CMAKE_ARGS && break
-            # delete object and archive files (of already installed packages) and retry
-            shopt -s globstar nullglob
-            df -lh
-            rm -f vcpkg/buildtrees/**/*.{o,obj,a,lib}
-            df -lh
-            du -sh vcpkg/buildtrees/*
+            echo "Build attempt $attempt:"
+            # 添加详细输出
+            python3 build.py --tarball --target maa-$TARGET --verbose -- $MAA_CMAKE_ARGS && break
+            
+            # 在失败时收集更多信息
+            if [ $? -ne 0 ]; then
+              echo "Build failed on attempt $attempt"
+              echo "Showing CMake logs:"
+              find . -name "CMakeError.log" -type f -exec cat {} \;
+              echo "Showing build logs:"
+              find vcpkg/buildtrees -name "*.log" -type f -exec cat {} \;
+              
+              # 显示磁盘空间信息
+              echo "Disk space information:"
+              df -h
+              
+              # 如果不是最后一次尝试，清理并重试
+              if [ $attempt -lt 3 ]; then
+                echo "Cleaning up for next attempt..."
+                rm -rf vcpkg/buildtrees/**/*.{o,obj,a,lib}
+              fi
+            fi
+            
             [[ $attempt != 3 ]]  # fail on last attempt
           done
 
       - name: Collect Logs
-        if: always()
+        if: always()  # 确保即使构建失败也收集日志
         run: |
-          shopt -s globstar
-          tar caf logs.tar --ignore-failed-read vcpkg/buildtrees/**/*.log
+          mkdir -p logs
+          find . -name "CMakeError.log" -type f -exec cp {} logs/ \;
+          find vcpkg/buildtrees -name "*.log" -type f -exec cp {} logs/ \;
+          tar czf build-logs.tar.gz logs/
 
-      - name: Upload Logs
+      - name: Upload Build Logs
+        if: always()  # 确保即使构建失败也上传日志
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: logs-${{ env.TARGET }}
-          path: logs.tar
+          name: build-logs-${{ env.TARGET }}
+          path: build-logs.tar.gz
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -114,3 +145,6 @@ jobs:
         run: |
           gh release create "$TAG_NAME" --prerelease || true  # accept existing release
           gh release upload "$TAG_NAME" tarball/*
+
+
+
