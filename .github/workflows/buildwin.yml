@@ -34,11 +34,37 @@ jobs:
           cd .
 
       - name: Windows runner hack (2)
-        uses: al-cheb/configure-pagefile-action@v1.3
-        with:
-          minimum-size: 16GB
-          maximum-size: 16GB
-          disk-root: "D:"
+        shell: powershell
+        run: |
+          # Configure page file size directly using PowerShell
+          $computersys = Get-WmiObject Win32_ComputerSystem -EnableAllPrivileges
+          $computersys.AutomaticManagedPagefile = $false
+          $computersys.Put()
+
+          $pagefile = Get-WmiObject -Query "SELECT * FROM Win32_PageFileSetting WHERE Name = 'D:\\pagefile.sys'"
+          if (-not $pagefile) {
+            $pagefile = Get-WmiObject -Query "SELECT * FROM Win32_PageFileSetting"
+            if ($pagefile) {
+              # Modify existing pagefile
+              $pagefile.InitialSize = 16384
+              $pagefile.MaximumSize = 16384
+              $pagefile.Put()
+            } else {
+              # Create new pagefile
+              $pagefile = New-Object -TypeName System.Management.ManagementClass Win32_PageFileSetting
+              $pagefile.Name = "D:\\pagefile.sys"
+              $pagefile.InitialSize = 16384
+              $pagefile.MaximumSize = 16384
+              $pagefile.Put()
+            }
+          } else {
+            # Modify D: pagefile
+            $pagefile.InitialSize = 16384
+            $pagefile.MaximumSize = 16384
+            $pagefile.Put()
+          }
+
+          Write-Host "Page file configuration complete"
 
       - uses: actions/checkout@v3
         with:
@@ -79,37 +105,37 @@ jobs:
           echo "TARGET: $TARGET"
           echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
           cl.exe /?
-          
+
           # 显示 Python 版本和位置
           python3 --version
           which python3
-          
+
           # 显示目录结构
           ls -la
-          
+
           for attempt in 1 2 3
           do
             echo "Build attempt $attempt:"
             # 移除 --verbose 参数
             python3 build.py --tarball --target maa-$TARGET && break
-            
+
             # 在失败时收集更多信息
             if [ $? -ne 0 ]; then
               echo "Build failed on attempt $attempt"
-              
+
               # 如果 vcpkg/buildtrees 目录存在才执行
               if [ -d "vcpkg/buildtrees" ]; then
                 echo "Showing build logs:"
                 find vcpkg/buildtrees -name "*.log" -type f -exec cat {} \;
               fi
-              
+
               # 显示 CMake 错误日志（如果存在）
               find . -name "CMakeError.log" -type f -exec cat {} \;
-              
+
               # 显示磁盘空间信息
               echo "Disk space information:"
               df -h
-              
+
               # 如果不是最后一次尝试，清理并重试
               if [ $attempt -lt 3 ]; then
                 echo "Cleaning up for next attempt..."
@@ -118,7 +144,7 @@ jobs:
                 fi
               fi
             fi
-            
+
             [[ $attempt != 3 ]]  # fail on last attempt
           done
 

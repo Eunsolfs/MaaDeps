@@ -41,11 +41,37 @@ jobs:
 
       - name: Windows runner hack (2)
         if: runner.os == 'Windows'
-        uses: al-cheb/configure-pagefile-action@v1.3
-        with:
-          minimum-size: 16GB
-          maximum-size: 16GB
-          disk-root: "D:"
+        shell: powershell
+        run: |
+          # Configure page file size directly using PowerShell
+          $computersys = Get-WmiObject Win32_ComputerSystem -EnableAllPrivileges
+          $computersys.AutomaticManagedPagefile = $false
+          $computersys.Put()
+
+          $pagefile = Get-WmiObject -Query "SELECT * FROM Win32_PageFileSetting WHERE Name = 'D:\\pagefile.sys'"
+          if (-not $pagefile) {
+            $pagefile = Get-WmiObject -Query "SELECT * FROM Win32_PageFileSetting"
+            if ($pagefile) {
+              # Modify existing pagefile
+              $pagefile.InitialSize = 16384
+              $pagefile.MaximumSize = 16384
+              $pagefile.Put()
+            } else {
+              # Create new pagefile
+              $pagefile = New-Object -TypeName System.Management.ManagementClass Win32_PageFileSetting
+              $pagefile.Name = "D:\\pagefile.sys"
+              $pagefile.InitialSize = 16384
+              $pagefile.MaximumSize = 16384
+              $pagefile.Put()
+            }
+          } else {
+            # Modify D: pagefile
+            $pagefile.InitialSize = 16384
+            $pagefile.MaximumSize = 16384
+            $pagefile.Put()
+          }
+
+          Write-Host "Page file configuration complete"
 
       # - name: Free Disk Space (Ubuntu) for cuda
       #   if: (runner.os == 'Linux') && (!contains(matrix.arch, 'android'))
@@ -54,7 +80,7 @@ jobs:
       #     # this might remove tools that are actually needed,
       #     # if set to "true" but frees about 6 GB
       #     tool-cache: false
-          
+
       #     # all of these default to true, but feel free to set to
       #     # "false" if necessary for your workflow
       #     android: true
@@ -85,7 +111,7 @@ jobs:
       #   id: cuda-toolkit
       #   with:
       #     log-file-suffix: '${{ matrix.arch }}-${{ runner.os }}.txt'
-    
+
       - uses: nttld/setup-ndk@v1
         if: contains(matrix.arch, 'android')
         id: setup-ndk
