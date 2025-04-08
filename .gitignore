@@ -2,5 +2,5 @@ runtime
 debug
 tarball
 src
-
+vcpkg/
 __pycache__
