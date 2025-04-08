@@ -22,15 +22,6 @@
       "platform": "windows",
       "features": ["directml"]
     },
-    {
-      "name": "maa-onnxruntime",
-      "platform": "osx",
-      "features": ["coreml"]
-    },
-    {
-      "name": "maa-onnxruntime",
-      "platform": "linux"
-    },
     "maa-fastdeploy",
     "zlib",
     "boost-asio",
