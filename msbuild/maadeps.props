@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <MaaDepsTriplet Condition="'$(Platform)'=='x64'">maa-x64-windows</MaaDepsTriplet>
-    <MaaDepsTriplet Condition="'$(Platform)'=='ARM64'">maa-arm64-windows</MaaDepsTriplet>
+    <MaaDepsTriplet Condition="'$(Platform)'=='Win32'">maa-x86-windows</MaaDepsTriplet>
     <MaaDepsPrefix>$(MSBuildThisFileDirectory)..\vcpkg\installed\$(MaaDepsTriplet)</MaaDepsPrefix>
     <MaaDepsIncludeDir>$(MaaDepsPrefix)\include</MaaDepsIncludeDir>
   </PropertyGroup>
