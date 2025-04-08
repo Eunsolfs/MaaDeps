@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "maa-boost-pkg",
+  "version": "1.0.0",
+  "description": "Boost dependencies for MaaFramework",
+  "homepage": "https://github.com/MaaXYZ/MaaDeps",
+  "license": null,
+  "dependencies": [
+    "boost-asio",
+    "boost-core",
+    "boost-dll",
+    "boost-process",
+    "boost-uuid"
+  ]
+}

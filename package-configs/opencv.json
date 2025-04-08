@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "maa-opencv",
+  "version": "1.0.0",
+  "description": "OpenCV dependencies for MaaFramework",
+  "homepage": "https://github.com/MaaXYZ/MaaDeps",
+  "license": null,
+  "dependencies": [
+    {
+      "name": "opencv",
+      "default-features": false,
+      "features": ["eigen", "jpeg", "png", "tiff", "world"]
+    },
+    {
+      "name": "opencv4",
+      "default-features": false,
+      "features": ["eigen", "jpeg", "png", "tiff", "world"]
+    }
+  ]
+}

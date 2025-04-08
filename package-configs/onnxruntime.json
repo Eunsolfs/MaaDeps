@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "maa-onnxruntime-pkg",
+  "version": "1.0.0",
+  "description": "ONNX Runtime dependencies for MaaFramework",
+  "homepage": "https://github.com/MaaXYZ/MaaDeps",
+  "license": null,
+  "dependencies": [
+    {
+      "name": "maa-onnxruntime",
+      "platform": "windows",
+      "features": ["directml"]
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+name: build-packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      use-cache:
+        type: boolean
+        default: true
+        description: Use binary cache
+      packages:
+        type: string
+        default: "all"
+        description: "Packages to build (comma-separated, or 'all')"
+
+jobs:
+  determine-packages:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.set-packages.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - id: set-packages
+        run: |
+          if [[ "${{ github.event.inputs.packages }}" == "all" ]]; then
+            PACKAGES=$(ls package-configs/*.json | xargs -n 1 basename | sed 's/\.json$//' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          else
+            PACKAGES=$(echo "${{ github.event.inputs.packages }}" | tr ',' '\n' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          fi
+          echo "packages=${PACKAGES}" >> $GITHUB_OUTPUT
+          echo "Packages to build: ${PACKAGES}"
+
+  build-package:
+    needs: determine-packages
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.determine-packages.outputs.packages) }}
+        os: [windows]
+        arch: [x64]
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash
+    runs-on: ${{ matrix.os }}-latest
+    timeout-minutes: 720
+    steps:
+      - name: Windows runner hack
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          dir d:\a
+          cd ..
+          mkdir C:\MaaDeps
+          rmdir MaaDeps
+          mklink /j MaaDeps C:\MaaDeps
+          dism /Online /Disable-Feature /FeatureName:Windows-Defender /Remove /NoRestart /Quiet
+          cd .
+
+      - name: Windows runner hack (2)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          # Configure page file size directly using PowerShell
+          $computersys = Get-WmiObject Win32_ComputerSystem -EnableAllPrivileges
+          $computersys.AutomaticManagedPagefile = $false
+          $computersys.Put()
+
+          $pagefile = Get-WmiObject -Query "SELECT * FROM Win32_PageFileSetting WHERE Name = 'D:\\pagefile.sys'"
+          if (-not $pagefile) {
+            $pagefile = Get-WmiObject -Query "SELECT * FROM Win32_PageFileSetting"
+            if ($pagefile) {
+              # Modify existing pagefile
+              $pagefile.InitialSize = 16384
+              $pagefile.MaximumSize = 16384
+              $pagefile.Put()
+            } else {
+              # Create new pagefile
+              $pagefile = New-Object -TypeName System.Management.ManagementClass Win32_PageFileSetting
+              $pagefile.Name = "D:\\pagefile.sys"
+              $pagefile.InitialSize = 16384
+              $pagefile.MaximumSize = 16384
+              $pagefile.Put()
+            }
+          } else {
+            # Modify D: pagefile
+            $pagefile.InitialSize = 16384
+            $pagefile.MaximumSize = 16384
+            $pagefile.Put()
+          }
+
+          Write-Host "Page file configuration complete"
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            vcpkg/downloads/
+          key: cache-downloads-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.package }}-${{ hashfiles('vcpkg-overlay', 'package-configs/*.json') }}
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: matrix.os == 'windows'
+        id: msvc-env
+        with:
+          arch: amd64${{ matrix.arch != 'x64' && format('_{0}', matrix.arch) || '' }}
+
+      - name: Setup MSVC environment
+        if: matrix.os == 'windows'
+        run: |
+          echo "CC=cl" >> $GITHUB_ENV
+          echo "CXX=cl" >> $GITHUB_ENV
+
+      - name: Setup ccache
+        uses: Chocobo1/setup-ccache-action@v1
+        with:
+          windows_compile_environment: msvc
+
+      - name: Set target
+        run: |
+          lower() { printf '%s\n' "${1,,}"; }
+          export RUNNER_OS=$(lower ${{runner.os}})
+          export OS=$(echo $RUNNER_OS | sed 's/macOS/osx/I')
+          echo "TARGET=${{ matrix.arch }}-${OS}" >> $GITHUB_ENV
+
+      - name: Build Package
+        env:
+          MAA_CMAKE_ARGS: "-DCMAKE_MESSAGE_LOG_LEVEL=WARNING -Wno-dev"
+        run: |
+          # Make script executable
+          chmod +x build-package.py
+
+          # Build the package
+          python3 build-package.py --package ${{ matrix.package }} --target $TARGET --tarball --cmake-args "$MAA_CMAKE_ARGS"
+
+          # Create logs directory
+          mkdir -p logs
+
+          # Collect logs if available
+          if [ -d "vcpkg/buildtrees" ]; then
+            find vcpkg/buildtrees -name "*.log" -type f -exec cp {} logs/ \; || true
+          fi
+
+          # Create tar.gz even if no logs were found
+          tar czf build-logs-${{ matrix.package }}.tar.gz logs/
+
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.package }}-${{ env.TARGET }}
+          path: build-logs-${{ matrix.package }}.tar.gz
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarball-${{ matrix.package }}-${{ env.TARGET }}
+          path: tarball-${{ matrix.package }}
+
+  combine-packages:
+    needs: build-package
+    runs-on: windows-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Combine packages
+        shell: bash
+        run: |
+          mkdir -p combined-tarball
+
+          # Copy all tarball artifacts to combined directory
+          find artifacts -name "tarball-*" -type d | while read dir; do
+            cp -r "$dir"/* combined-tarball/
+          done
+
+          # List combined files
+          ls -la combined-tarball
+
+      - name: Upload Combined Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-tarball
+          path: combined-tarball
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          gh release create "$TAG_NAME" --prerelease || true  # accept existing release
+          find combined-tarball -type f -exec gh release upload "$TAG_NAME" {} \;

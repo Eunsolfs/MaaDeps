@@ -15,13 +15,13 @@ cross_compiling = False
 @task
 def bootstrap(target_triplet=None):
     if target_triplet is None:
-        target_triplet = "maa-" + host_triplet
+        target_triplet = host_triplet
     print("host triplet for vcpkg:", host_triplet)
     print("target triplet for vcpkg:", target_triplet)
 
     global triplet, cross_compiling, install_prefix
     triplet = target_triplet
-    cross_compiling = host_triplet != target_triplet.removeprefix("maa-")
+    cross_compiling = host_triplet != target_triplet
     install_prefix = os.path.join(root, "installed", target_triplet)
 
     os.environ["VCPKG_OVERLAY_TRIPLETS"] = os.path.join(basedir, "vcpkg-overlay", "triplets")

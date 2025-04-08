@@ -2,10 +2,43 @@
 
 Collection of build scripts to build MAA dependencies for popular platforms
 
+## Usage
+
+### Building All Dependencies
+
+To build all dependencies at once:
+
+```bash
+python build.py --tarball --target <target-triplet>
+```
+
+Where `<target-triplet>` is your target platform (e.g., `x64-windows`, `x64-linux`, etc.)
+
+### Building Individual Packages
+
+To build a specific package:
+
+```bash
+python build-package.py --package <package-name> --target <target-triplet> --tarball
+```
+
+Available packages:
+- `opencv` - OpenCV and OpenCV4 libraries
+- `onnxruntime` - ONNX Runtime with DirectML support (Windows only)
+- `fastdeploy` - FastDeploy library
+- `boost` - Boost libraries (asio, core, dll, process, uuid)
+- `misc` - Miscellaneous dependencies (zlib, cppzmq)
+
+## GitHub Workflows
+
+- `build.yml` - Builds all dependencies at once
+- `buildwin.yml` - Builds all dependencies for Windows
+- `build-packages.yml` - Builds individual packages separately
+
 ## Best Practices
 
-- [MaaAssistantArknights](https://github.com/MaaAssistantArknights/MaaAssistantArknights)  
+- [MaaAssistantArknights](https://github.com/MaaAssistantArknights/MaaAssistantArknights)
   《明日方舟》小助手，全日常一键长草！| A one-click tool for the daily tasks of Arknights, supporting all clients.
 
-- [MaaFramework](https://github.com/MaaXYZ/MaaFramework)  
+- [MaaFramework](https://github.com/MaaXYZ/MaaFramework)
   基于图像识别的自动化黑盒测试框架 | A automation black-box testing framework based on image recognition
