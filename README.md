@@ -35,6 +35,18 @@ Available packages:
 - `buildwin.yml` - Builds all dependencies for Windows
 - `build-packages.yml` - Builds individual packages separately
 
+## Suppressing CMake Warnings
+
+To suppress CMake developer warnings, we've implemented several approaches:
+
+1. Added `-Wno-dev` and `-DCMAKE_MESSAGE_LOG_LEVEL=WARNING` flags in triplet files
+2. Added these flags to `vcpkg-configuration.json`
+3. Provided environment variable scripts:
+   - Windows: `set-cmake-flags.bat`
+   - Unix: `set-cmake-flags.sh`
+
+You can run these scripts before building to suppress warnings.
+
 ## Best Practices
 
 - [MaaAssistantArknights](https://github.com/MaaAssistantArknights/MaaAssistantArknights)
