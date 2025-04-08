@@ -25,6 +25,7 @@ python build-package.py --package <package-name> --target <target-triplet> --tar
 Available packages:
 - `opencv` - OpenCV and OpenCV4 libraries
 - `onnxruntime` - ONNX Runtime with DirectML support (Windows only)
+- `directml` - DirectML library (Windows only, requires dynamic CRT)
 - `fastdeploy` - FastDeploy library
 - `boost` - Boost libraries (asio, core, dll, process, uuid)
 - `misc` - Miscellaneous dependencies (zlib, cppzmq)
@@ -34,6 +35,25 @@ Available packages:
 - `build.yml` - Builds all dependencies at once
 - `buildwin.yml` - Builds all dependencies for Windows
 - `build-packages.yml` - Builds individual packages separately
+
+### Build Order
+
+The `build-packages.yml` workflow ensures that packages are built in the correct order to handle dependencies. Specifically:
+
+- DirectML is built before ONNX Runtime, since ONNX Runtime depends on DirectML
+- Other packages are built in the order specified
+
+## Suppressing CMake Warnings
+
+To suppress CMake developer warnings, we've implemented several approaches:
+
+1. Added `-Wno-dev` and `-DCMAKE_MESSAGE_LOG_LEVEL=WARNING` flags in triplet files
+2. Added these flags to `vcpkg-configuration.json`
+3. Provided environment variable scripts:
+   - Windows: `set-cmake-flags.bat`
+   - Unix: `set-cmake-flags.sh`
+
+You can run these scripts before building to suppress warnings.
 
 ## Best Practices
 
