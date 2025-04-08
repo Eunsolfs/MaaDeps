@@ -23,6 +23,7 @@ python build-package.py --package <package-name> --target <target-triplet> --tar
 ```
 
 Available packages:
+
 - `opencv` - OpenCV and OpenCV4 libraries
 - `onnxruntime` - ONNX Runtime with DirectML support (Windows only)
 - `directml` - DirectML library (Windows only, requires dynamic CRT)
@@ -43,22 +44,9 @@ The `build-packages.yml` workflow ensures that packages are built in the correct
 - DirectML is built before ONNX Runtime, since ONNX Runtime depends on DirectML
 - Other packages are built in the order specified
 
-## Suppressing CMake Warnings
-
-To suppress CMake developer warnings, we've implemented several approaches:
-
-1. Added `-Wno-dev` and `-DCMAKE_MESSAGE_LOG_LEVEL=WARNING` flags in triplet files
-2. Added these flags to `vcpkg-configuration.json`
-3. Provided environment variable scripts:
-   - Windows: `set-cmake-flags.bat`
-   - Unix: `set-cmake-flags.sh`
-
-You can run these scripts before building to suppress warnings.
-
 ## Best Practices
 
 - [MaaAssistantArknights](https://github.com/MaaAssistantArknights/MaaAssistantArknights)
   《明日方舟》小助手，全日常一键长草！| A one-click tool for the daily tasks of Arknights, supporting all clients.
-
 - [MaaFramework](https://github.com/MaaXYZ/MaaFramework)
   基于图像识别的自动化黑盒测试框架 | A automation black-box testing framework based on image recognition

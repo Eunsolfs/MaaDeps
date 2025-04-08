@@ -1,5 +1,4 @@
 {
   "overlay-triplets": ["vcpkg-overlay/triplets"],
-  "overlay-ports": ["vcpkg-overlay/ports"],
-  "cmake-args": ["-Wno-dev", "-DCMAKE_MESSAGE_LOG_LEVEL=WARNING"]
+  "overlay-ports": ["vcpkg-overlay/ports"]
 }
