@@ -212,6 +212,7 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           # CUDAToolkit_ROOT: ${{ steps.cuda-toolkit.outputs.CUDA_PATH }}
+          MAA_CMAKE_ARGS: "-DCMAKE_MESSAGE_LOG_LEVEL=WARNING -Wno-dev"
         run: |
           for attempt in 1 2 3
           do

@@ -74,7 +74,19 @@ jobs:
         with:
           path: |
             vcpkg/downloads/
-          key: cache-downloads-${{ matrix.os }}-${{ matrix.arch }}-${{ hashfiles('vcpkg-overlay', 'vcpkg*.json') }}
+          key: cache-downloads-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('vcpkg-overlay/**/*', 'vcpkg.json') }}
+      # no symbols if installed from binary archive
+      # - uses: actions/cache/restore@v3
+      #   if: github.event.inputs.use-cache
+      #   with:
+      #     path: |
+      #       vcpkg/archives/
+      #     key: cache-${{ matrix.os }}-${{ matrix.arch }}-${{ hashfiles('vcpkg-overlay') }}
+
+      # # this should work on both bash and pwsh, and giving native path on windows
+      # - run: |
+      #     mkdir -p vcpkg/archives
+      #     echo "VCPKG_DEFAULT_BINARY_CACHE=$PWD/vcpkg/archives" >> $GITHUB_ENV
 
       - uses: ilammy/msvc-dev-cmd@v1
         id: msvc-env
@@ -99,6 +111,8 @@ jobs:
           echo "TARGET=${{ matrix.arch }}-${OS}" >> $GITHUB_ENV
 
       - name: Build MaaDeps
+        env:
+          MAA_CMAKE_ARGS: "-DCMAKE_MESSAGE_LOG_LEVEL=WARNING -Wno-dev"
         run: |
           # 显示环境信息
           echo "Current environment:"
@@ -183,6 +197,7 @@ jobs:
         run: |
           gh release create "$TAG_NAME" --prerelease || true  # accept existing release
           gh release upload "$TAG_NAME" tarball/*
+
 
 
 
